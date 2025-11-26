@@ -23,6 +23,6 @@ export default defineConfig(({ mode }) => {
           '@': path.resolve(__dirname, '.'),
         }
       },
-      base: '/' // Important for GitHub Pages, change to '/repo-name/' if deploying to subdirectory
+      base: '/ai-recipe/' // GitHub Pages subdirectory path
     };
 });
