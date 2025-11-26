@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../constants";
 import { Recipe } from "../types";
+import { searchRecipesByIngredients, getRandomRecipe, type RecipeSource } from "./githubService";
 
 // Initialize Gemini Client
 // CRITICAL: process.env.API_KEY is automatically injected.
@@ -38,13 +39,42 @@ const enrichRecipe = (jsonText: string): Recipe => {
 
 export const generateRecipeFromIngredients = async (ingredients: string): Promise<Recipe> => {
   try {
+    // Step 1: Fetch real recipes from GitHub
+    console.log('🔍 Searching GitHub repositories for recipes...');
+    const githubRecipes = await searchRecipesByIngredients(ingredients, 3);
+
+    if (githubRecipes.length === 0) {
+      throw new Error('No recipes found from GitHub repositories');
+    }
+
+    // Step 2: Format GitHub recipes as context for AI
+    const recipeContext = githubRecipes.map((recipe, idx) => `
+### 参考食谱 ${idx + 1} (来自 ${recipe.repo})
+来源: ${recipe.url}
+内容:
+${recipe.content}
+---
+`).join('\n');
+
+    console.log(`✅ Found ${githubRecipes.length} recipes from GitHub`);
+
+    // Step 3: Send to AI with real GitHub data
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: `输入食材：${ingredients}。
-      任务：请搜索你知识库中 'HowToCook' (程序员做饭指南) 或 '老乡鸡' 相关的经典做法。
-      1. 匹配最合适的炖菜/焖菜食谱。
-      2. 将其重构为【1人食、低钠、低糖】版本。
-      3. 步骤中必须包含精确的量化指标（时间、重量）。`,
+      contents: `用户输入的食材：${ingredients}
+
+我已经从 GitHub 开源仓库中检索到以下真实菜谱作为参考：
+
+${recipeContext}
+
+任务：
+1. 分析以上来自 'HowToCook' 和 'CookLikeHOC' (老乡鸡) 的真实开源菜谱
+2. 根据用户的食材，选择最相关的菜谱进行改良
+3. 将其重构为【1人食、低钠、低糖】版本
+4. 步骤中必须包含精确的量化指标（时间、重量）
+5. 在 description 字段中明确说明参考了哪个具体的 GitHub 菜谱
+
+重要：请基于上面提供的真实 GitHub 菜谱内容进行改良，而不是凭空想象。`,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
@@ -54,7 +84,7 @@ export const generateRecipeFromIngredients = async (ingredients: string): Promis
 
     const jsonText = response.text;
     if (!jsonText) throw new Error("No response from AI");
-    
+
     return enrichRecipe(jsonText);
   } catch (error) {
     console.error("Error generating recipe:", error);
@@ -64,11 +94,30 @@ export const generateRecipeFromIngredients = async (ingredients: string): Promis
 
 export const generateRandomRecipe = async (): Promise<Recipe> => {
   try {
+    // Step 1: Fetch a random real recipe from GitHub
+    console.log('🎲 Fetching random recipe from GitHub repositories...');
+    const githubRecipe = await getRandomRecipe();
+
+    console.log(`✅ Found random recipe: ${githubRecipe.path} from ${githubRecipe.repo}`);
+
+    // Step 2: Send to AI with real GitHub data
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: `请从开源食谱项目（HowToCook 或 老乡鸡）中随机挑选一道高人气的【炖菜/焖菜】。
-      将其“Fork”并“Patch”为【1人食・低钠控糖版】。
-      给我一道既有极客精神（精准）又有家常味道（好吃）的惊喜料理。`,
+      contents: `我从 GitHub 开源仓库中随机选择了以下真实菜谱：
+
+### 来自 ${githubRecipe.repo}
+来源: ${githubRecipe.url}
+内容:
+${githubRecipe.content}
+
+任务：
+1. 分析这道来自 '${githubRecipe.repo}' 的真实开源菜谱
+2. 将其"Fork"并"Patch"为【1人食、低钠、低糖】改良版
+3. 步骤中必须包含精确的量化指标（时间、重量）
+4. 在 description 字段中明确说明参考了 GitHub 上的哪个具体菜谱
+5. 保持极客精神（精准）和家常味道（好吃）的完美结合
+
+重要：请基于上面提供的真实 GitHub 菜谱内容进行改良，而不是凭空想象。`,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",

@@ -150,8 +150,8 @@ const App: React.FC = () => {
                         “以开源精神，重构健康饮食。”
                         </p>
                         <p className="text-base text-gray-600">
-                            输入食材，AI 将参考 <b>HowToCook</b> 和 <b>老乡鸡</b> 等开源方案，<br/>
-                            为您编译一份严格符合 <b>低糖低钠</b> 标准的独居炖菜指南。
+                            输入食材，AI 将实时从 GitHub 仓库获取 <b>HowToCook</b> 和 <b>CookLikeHOC(老乡鸡)</b> 的真实开源菜谱，<br/>
+                            并为您改良为严格符合 <b>低糖低钠</b> 标准的 1 人食健康版本。
                         </p>
                     </div>
                 )}
@@ -181,8 +181,9 @@ const App: React.FC = () => {
                         </div>
                         <div className="text-center space-y-2">
                             <p className="text-earth-900 font-bold text-xl">正在编译...</p>
-                            <p className="text-earth-600 text-sm">AI 正在检索 GitHub 开源库并进行健康重构</p>
-                            <p className="text-xs text-gray-400 font-mono pt-2">Playing: Cooking_Sounds.wav (Generated)</p>
+                            <p className="text-earth-600 text-sm">正在从 HowToCook 和 CookLikeHOC 仓库获取真实菜谱</p>
+                            <p className="text-xs text-gray-400 font-mono pt-2">Fetching: github.com/Anduin2017/HowToCook</p>
+                            <p className="text-xs text-gray-400 font-mono">Fetching: github.com/Gar-b-age/CookLikeHOC</p>
                         </div>
                     </div>
                 )}
