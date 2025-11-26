@@ -3,9 +3,27 @@ import { SYSTEM_INSTRUCTION } from "../constants";
 import { Recipe } from "../types";
 import { searchRecipesByIngredients, getRandomRecipe, type RecipeSource } from "./githubService";
 
-// Initialize Gemini Client
-// CRITICAL: process.env.API_KEY is automatically injected.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize Gemini Client with fallback to stored API key
+let ai: GoogleGenAI;
+
+const getApiKey = (): string => {
+  // Priority: process.env > localStorage
+  if (process.env.API_KEY) {
+    return process.env.API_KEY;
+  }
+
+  const storedKey = localStorage.getItem('zenkitchen_api_key');
+  if (storedKey) {
+    return storedKey;
+  }
+
+  throw new Error('No API key found. Please set your Gemini API key.');
+};
+
+const initializeAI = () => {
+  const apiKey = getApiKey();
+  ai = new GoogleGenAI({ apiKey });
+};
 
 const recipeSchema = {
   type: Type.OBJECT,
@@ -39,6 +57,9 @@ const enrichRecipe = (jsonText: string): Recipe => {
 
 export const generateRecipeFromIngredients = async (ingredients: string): Promise<Recipe> => {
   try {
+    // Initialize AI with current API key
+    initializeAI();
+
     // Step 1: Fetch real recipes from GitHub
     console.log('🔍 Searching GitHub repositories for recipes...');
     const githubRecipes = await searchRecipesByIngredients(ingredients, 3);
@@ -94,6 +115,9 @@ ${recipeContext}
 
 export const generateRandomRecipe = async (): Promise<Recipe> => {
   try {
+    // Initialize AI with current API key
+    initializeAI();
+
     // Step 1: Fetch a random real recipe from GitHub
     console.log('🎲 Fetching random recipe from GitHub repositories...');
     const githubRecipe = await getRandomRecipe();

@@ -4,6 +4,7 @@ import { Recipe, LoadingState, ViewState } from './types';
 import RecipeCard from './components/RecipeCard';
 import InputSection from './components/InputSection';
 import SavedRecipesList from './components/SavedRecipesList';
+import ApiKeyInput from './components/ApiKeyInput';
 import { APP_TITLE, APP_SUBTITLE, ERROR_MESSAGE, STORAGE_KEY_FAVORITES } from './constants';
 import { playTickSound, playSuccessSound } from './utils/audio';
 
@@ -13,7 +14,18 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
   const [viewState, setViewState] = useState<ViewState>('HOME');
+  const [hasApiKey, setHasApiKey] = useState<boolean>(false);
   const timerRef = useRef<number | null>(null);
+
+  // Check for API key on mount
+  useEffect(() => {
+    const checkApiKey = () => {
+      const envKey = process.env.API_KEY;
+      const storedKey = localStorage.getItem('zenkitchen_api_key');
+      setHasApiKey(!!(envKey || storedKey));
+    };
+    checkApiKey();
+  }, []);
 
   // Load favorites on mount
   useEffect(() => {
@@ -143,11 +155,14 @@ const App: React.FC = () => {
              </section>
         ) : (
             <>
+                {/* API Key Input - Show if no API key */}
+                <ApiKeyInput onApiKeySet={(key) => setHasApiKey(!!key)} />
+
                 {/* Intro Text - Only show when no recipe and idle */}
                 {!recipe && loadingState === LoadingState.IDLE && (
                     <div className="text-center space-y-4 max-w-2xl mx-auto py-8 opacity-90">
                         <p className="text-xl text-earth-800 leading-relaxed font-serif font-medium">
-                        “以开源精神，重构健康饮食。”
+                        "以开源精神，重构健康饮食。"
                         </p>
                         <p className="text-base text-gray-600">
                             输入食材，AI 将实时从 GitHub 仓库获取 <b>HowToCook</b> 和 <b>CookLikeHOC(老乡鸡)</b> 的真实开源菜谱，<br/>
